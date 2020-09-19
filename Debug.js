@@ -1,7 +1,20 @@
+include("GLOBALS");
+
 // Petites fonctions de debug que l'on peut désactiver en passant logDebug à false
 // Pour les utiliser, ajouter un "P" à la fin d'une fonction de l'API
 
+
+
 global logDebug = true;
+
+
+function displayComboName(combo) {
+	var comboName = [];
+	for(var action in combo) {
+		push(comboName, ALL_INGAME_TOOLS[action[CHIP_WEAPON]][TOOL_NAME]);
+	}
+	debugP(comboName);
+}
 
 
 function debugP(object) {

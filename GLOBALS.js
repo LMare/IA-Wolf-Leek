@@ -1,6 +1,6 @@
 // dernière mise à jour le : 03/02/2020 par : Caneton
 
-include("Debug");
+
 
 /********************** Globals *********************************/
 global NUMBER_OF_INGAME_ITEMS = 150 ;
@@ -70,6 +70,8 @@ SCORE_TACTIC = (function() {
 //informations concernant une action
 global CELL_DEPLACE=0, CELL_VISE=1, VALEUR=2, CHIP_WEAPON=3, NB_TIR=4, PT_USE=5, EFFECT=6, CALLBACK = 7, PARAM = 8, PM_USE = 9;
 
+include("Debug");
+
 // orientation pour le laser
 global NE_laser = 0;
 global SO_laser = 1;
@@ -96,7 +98,7 @@ global
 
 // Caractéristique des bulbes sous la Forme de INFO_LEEKS
 // Afin de pouvoir calculer les possibilités d'un bulbe avant de le summon
-//TODO: faire évoluer INFO_LEEKS & getTargetEffect pour pouvoir les utiliser
+//TODO: faire évoluer INFO_LEEKS & getTargetEffect pour pouvoir les utiliser 
 global VIRTUAL_BULB = -999;
 global VIRTUAL_METALLIC_BULB = [
 	ID 				: VIRTUAL_BULB,
@@ -1041,7 +1043,7 @@ function getValeurEffect(tool, effectVoulu, leek, valeur) {
 				if(inArray([EFFECT_POISON, EFFECT_SHACKLE_STRENGTH, EFFECT_SHACKLE_MAGIC, EFFECT_SHACKLE_TP, EFFECT_SHACKLE_MP], effectVoulu)) amelioration = getMagic(leek);
 				if(inArray([EFFECT_BUFF_STRENGTH, EFFECT_BUFF_WISDOM, EFFECT_BUFF_RESISTANCE, EFFECT_BUFF_AGILITY, EFFECT_BUFF_TP, EFFECT_BUFF_MP, EFFECT_NOVA_DAMAGE], effectVoulu)) amelioration = getScience(leek);
 				if(inArray([EFFECT_DEBUFF, EFFECT_ANTIDOTE, EFFECT_INVERT, EFFECT_TELEPORT, EFFECT_RAW_BUFF_MP, EFFECT_RAW_BUFF_TP], effectVoulu)) amelioration = 0;
-
+				
 				return Valeur * ( 1 + amelioration / 100) + 1;
 			}
 		}
@@ -1088,7 +1090,7 @@ if (TOUR == 1) {
 	// cf https://leekwars.com/forum/category-3/topic-9714
 	ALL_INGAME_TOOLS[WEAPON_J_LASER][TOOL_ATTACK_EFFECTS][1][TOOL_MODIFIER_MULTIPLIED_BY_TARGETS] = true;
 	ALL_INGAME_TOOLS[WEAPON_J_LASER][TOOL_ATTACK_EFFECTS][1][TOOL_EFFECT_TYPE] = EFFECT_RAW_ABSOLUTE_SHIELD;
-
+	
 	// Modification pour les STEROID qui ne fonctionne pas comme dans la description
 	// cf https://leekwars.com/forum/category-3/topic-9790
 	ALL_INGAME_TOOLS[CHIP_STEROID][TOOL_ATTACK_EFFECTS][2] = ALL_INGAME_TOOLS[CHIP_STEROID][TOOL_ATTACK_EFFECTS][1];
@@ -1160,3 +1162,4 @@ function stats_effects(@tab_effect, @effect) {
 	tab_effect[TOOL_TARGET_NON_SUMMONS] = (effect[4] & EFFECT_TARGET_NON_SUMMONS) && true;
 	tab_effect[TOOL_TARGET_CASTER] = (effect[4] & EFFECT_TARGET_CASTER) && true;
 }
+
