@@ -1,17 +1,19 @@
 include('GLOBALS');
 include('getArea');
+include('Territoire');
+include('COLOR');
 
 /**
  * @auteur : Caneton
  *
  * castel : ID Leek 					| Le poireau qui fait l'action
- * Tool : ID of chip / weapon				| l'arme utilisé
+ * Tool : ID of chip / weapon			| l'arme utilisé
  * cellVise : ID cell (ou un array)		| la cell sur laquelle on va tirer
  * multiTarget Boolean					| permet de prendre en compte plusieurs cible grâce à l'AOE
- *									|
+ * aTargetEffect						| du même type que retrurn ; pour pouvoir cumuler les résultats de l'appel à cette fonction (combo)
  * @return : array						| [LEEK : [EFFECT : [TURN : VALUE]]]
  */
-function getTargetEffect(caster, tool, cellVise, multiTarget) {
+function getTargetEffect(caster, tool, cellVise, multiTarget, aTargetEffect) {
 
 	var cibles = multiTarget ? getCibles(tool, cellVise) : [getLeekOnCell(cellVise)]; // leeks se trouvant dans l'AOE de l'arme
 
@@ -24,7 +26,7 @@ function getTargetEffect(caster, tool, cellVise, multiTarget) {
 	var effects = infoTool[TOOL_ATTACK_EFFECTS];
 	var area = infoTool[TOOL_AOE_TYPE];
 
-	var returnTab = [];
+	var returnTab = aTargetEffect == null ? [] : aTargetEffect;
 
 	for(var effect in effects) {
 		var targets = arrayFilter(cibles, getFunctionToFilterTarget(effect, caster));
@@ -127,10 +129,26 @@ function getTargetEffect(caster, tool, cellVise, multiTarget) {
 					if (returnTab[cible][EFFECT_DAMAGE] == null) returnTab[cible][EFFECT_DAMAGE] = [];
 					returnTab[cible][EFFECT_DAMAGE][0] = getLife(cible);
 				}
+				
+				if (effect[TOOL_EFFECT_TYPE] == EFFECT_INVERT) {
+					// [Test] : j'aime pas trop les chaine de caractère comme ça => faire des variables pour oldCell et newCell 
+					if (returnTab[cible] == null) returnTab[cible] = [];
+					if (returnTab[cible][EFFECT_INVERT] == null) returnTab[cible][EFFECT_INVERT] = [];
+					if (returnTab[cible][EFFECT_INVERT][0] == null) returnTab[cible][EFFECT_INVERT][0] = [];
+					returnTab[cible][EFFECT_INVERT][0]["oldCell"] = getCell(cible);
+					returnTab[cible][EFFECT_INVERT][0]["newCell"] = INFO_LEEKS[ME][CELL];
+					returnTab[cible][EFFECT_INVERT[0]]["entityInvert"] = caster;
+					
+					if (returnTab[caster] == null) returnTab[caster] = [];
+					if (returnTab[caster][EFFECT_INVERT] == null) returnTab[caster][EFFECT_INVERT] = [];
+					if (returnTab[caster][EFFECT_INVERT][0] == null) returnTab[caster][EFFECT_INVERT][0] = [];
+					returnTab[caster][EFFECT_INVERT][0]["oldCell"] = INFO_LEEKS[ME][CELL];
+					returnTab[caster][EFFECT_INVERT][0]["newCell"] = getCell(cible);
+					returnTab[caster][EFFECT_INVERT][0]["entityInvert"] = cible;
+				}
 			}
 		}
 	}
-
 	return returnTab;
 }
 
@@ -154,13 +172,13 @@ function getCharacteristiqueFunction(characteristic) {
 
 
 /**
- * Limite la valeur en fonction de l'effet et des caractéristiques de l'entité
+ * Limite la valeur en fonction de l'effet et des caractéristiques de l'entité 
  */
 function getRealValue(effect, leek, value) {
   if(inArray([EFFECT_HEAL, EFFECT_NOVA_DAMAGE], effect)) {
     value = min(value, INFO_LEEKS[leek][MAX_LIFE] - INFO_LEEKS[leek][LIFE]);
   }
-
+  
   // TODO : Rajouter d'autre effets si besoin;
   // Dans l'absolu faudrait rajouter EFFECT_DAMAGE mais IA ne met pas de 'bonus' si on tue un leek => on risquerait de ne pas tirer sur les ennemis si il leur reste 10pv
 
@@ -249,22 +267,25 @@ function getValueOfTargetEffect(aTargetEffect) {
 					if (inArray([EFFECT_ABSOLUTE_SHIELD, EFFECT_RELATIVE_SHIELD], effect)) {
 						// on calcule la protection que ça apporte
 						initDangerousEnnemis();
-						var damageOnLeekBeforeShield = getTargetEffect(dangerousEnnemis, bestWeapon, getCell(leek), false)[leek][EFFECT_DAMAGE][0];
+						var damageOnLeekBeforeShield = getTargetEffect(dangerousEnnemis, bestWeapon, getCell(leek), false, null)[leek][EFFECT_DAMAGE][0];
 						var shield = (effect == EFFECT_ABSOLUTE_SHIELD) ? ABSOLUTE_SHIELD : RELATIVE_SHIELD;
 						// /!\ on suppose que la cible n'a pas déjà la puce !!! => rajouter un controle avant dans getTargetEffect ou bien ici
 						INFO_LEEKS[leek][shield] += value;
-						var damageOnLeekAfterShield = getTargetEffect(dangerousEnnemis, bestWeapon, getCell(leek), false)[leek][EFFECT_DAMAGE][0];
+						var damageOnLeekAfterShield = getTargetEffect(dangerousEnnemis, bestWeapon, getCell(leek), false, null)[leek][EFFECT_DAMAGE][0];
 						INFO_LEEKS[leek][shield] -= value;
 						var bonus = damageOnLeekBeforeShield - damageOnLeekAfterShield;
-						coeffReturned += infoEffect[COEFF_EFFECT] * COEFF_LEEK_EFFECT[leek][effect] * bonus; // normalement c'est toujours sur des alliés donc je mets pas de controle sur la team
+						var coeffLeekEffect = typeOf(COEFF_LEEK_EFFECT[leek][effect]) == TYPE_FUNCTION ? COEFF_LEEK_EFFECT[leek][effect]() : COEFF_LEEK_EFFECT[leek][effect];
+						coeffReturned += infoEffect[COEFF_EFFECT] * coeffLeekEffect * bonus; // normalement c'est toujours sur des alliés donc je mets pas de controle sur la team
 					} else {
 						// Par defaut
 
 						value = (isAlreadyShackle(leek, effect)) ? 0 : value;
-						var coeffNbTurn = turn == 0 ? 1 : sqrt(turn);
+						
+						var coeffNbTurn = getTurnCoeff(effect, turn, leek);
 						var coeffTeam = isAlly(leek) ? 1 : -1;
 						var coeffHealthy = infoEffect[IS_HEALTHY] ? 1 : -1;
-						coeffReturned += coeffNbTurn * coeffTeam * coeffHealthy * infoEffect[COEFF_EFFECT] * COEFF_LEEK_EFFECT[leek][effect] * value;
+						var coeffLeekEffect = typeOf(COEFF_LEEK_EFFECT[leek][effect]) == TYPE_FUNCTION ? COEFF_LEEK_EFFECT[leek][effect]() : COEFF_LEEK_EFFECT[leek][effect];
+						coeffReturned += coeffNbTurn * coeffTeam * coeffHealthy * infoEffect[COEFF_EFFECT] * coeffLeekEffect * value;
 
 					}
 				} else { // IS_SPECIAL
@@ -273,10 +294,51 @@ function getValueOfTargetEffect(aTargetEffect) {
 						if (!USE_VIE_PREVISIONNEL || INFO_LEEKS[leek][VIE_PREVISIONNEL] > 0) {
 							var coeffTeam = isAlly(leek) ? 1 : -1;
 							var coeffHealthy = infoEffect[IS_HEALTHY] ? 1 : -1;
-							coeffReturned +=  coeffTeam * coeffHealthy * infoEffect[COEFF_EFFECT] * COEFF_LEEK_EFFECT[leek][effect];
+							var coeffLeekEffect = typeOf(COEFF_LEEK_EFFECT[leek][effect]) == TYPE_FUNCTION ? COEFF_LEEK_EFFECT[leek][effect]() : COEFF_LEEK_EFFECT[leek][effect];
+							coeffReturned +=  coeffTeam * coeffHealthy * infoEffect[COEFF_EFFECT] * coeffLeekEffect;
+							debugC("EFFECT_KILL => score : " + coeffReturned, COLOR_FUSCHIA);
 						} else {
-							// L'entité meurt déjà par le poison, donc en rajouter ne va rien changer (mis a part consommer des pf pour rien)
+							// L'entité meurt déjà par le poison, donc en rajouter ne va rien changer (mis a part consommer des pf pour rien) 
 						}
+					}
+					
+					if (effect == EFFECT_INVERT) {
+						debug(value);
+						if(leek == ME) {
+							var autreEntity = value["entityInvert"];
+							if(isAlly(autreEntity)) {
+								// les territoires ne vont pas changer
+							} else {
+								// les territoires vont changer
+								var cell1 = value["oldCell"];
+								var cell2 = value["newCell"];
+								
+								if(getCellDistance(cell1, cell2) <= 5) {
+									// la position change peu => négligeable
+								} else {
+									// TODO: voir les changements de territoires
+									var teamAllies = [], teamEnemies = [];
+									getTeams(teamAllies, teamEnemies, [ME, autreEntity], true, false);
+									var territoireNewCellEnemy = getCellTerritoires(teamAllies, teamEnemies, cell1);
+									var TerritoireNewCellMe = getCellTerritoires(teamAllies, teamEnemies, cell2);
+									
+									
+									mark(cell1, COLOR_CLOUDS);
+									mark(cell2, COLOR_YELLOW);
+									debug("Intéressant ? " + (territoireNewCellEnemy[1] > territoireNewCellEnemy[2]) + " value (Allie, enemi): (" + territoireNewCellEnemy[1] + " / " + territoireNewCellEnemy[2]);
+									
+									
+									
+									debug("Dangereux ? " + (TerritoireNewCellMe[2] > TerritoireNewCellMe[1]) + " value (Allie, enemi): (" + TerritoireNewCellMe[1] + " / " + TerritoireNewCellMe[2]);
+									
+									// a finir !!!
+								}
+								
+							}
+						} else {
+							// cas traité dans le if précédant
+						}
+						
 					}
 				}
 			}
@@ -285,6 +347,18 @@ function getValueOfTargetEffect(aTargetEffect) {
 	return coeffReturned;
 }
 
+
+function getTurnCoeff(effect, nbTurn, cible) {
+	var coeffNbTurn = 1; 
+	if(effect == EFFECT_POISON) nbTurn = min(nbTurn, 2); // de toute les façons il va les retirer
+	coeffNbTurn = nbTurn == 0 ? 1 : sqrt(nbTurn);
+	if(effect == EFFECT_HEAL) {
+		if(getLife(cible) <= 0.7 * getTotalLife(cible) && nbTurn != 0) {
+			coeffNbTurn =  0.5 * coeffNbTurn;
+		} 
+	} 
+	return coeffNbTurn;
+}
 
 // ------------------- Leek ennemis et arme de référence pour caluler les gains des puces de shield -----------------
 
@@ -365,20 +439,21 @@ function getTarget(tool, cell) {
 
 /**
  * Calcul la vie qu'aura une entitée au moment de son tour
- * le résultat est setter dans la variable : INFO_LEEKS[entity][VIE_PREVISIONNEL]
+ * le résultat est setter dans la variable : INFO_LEEKS[entity][VIE_PREVISIONNEL]  
  */
 function setViePrevisionel() {
 	var allEntities = getAliveAllies() + getAliveEnemies();
-	var turnOrder = getTurnOrder();
+	var turnOrder = getTurnOrder(); 
 	var nbEntities = count(turnOrder);
 	var myTurnOrder = getEntityTurnOrder();
-
+	
+	
 	for(var entity in allEntities) {
 		var effects = getEffects(entity);
 		var vie_previsionel = getLife(entity);
 		for(var effect in effects) {
-			if(inArray([EFFECT_POISON, EFFECT_AFTEREFFECT, EFFECT_HEAL], effect[TYPE])) {
-				// l'effect va modifier la vie
+			if(inArray([EFFECT_POISON, EFFECT_AFTEREFFECT, EFFECT_HEAL], effect[TYPE])) { // il me semble que c'est les seuls qui se déroulent sur plusieurs tours 
+				// l'effect va retirer de la vie
 				var ok = false;
 				if (effect[TURNS] > 1) {
 					ok = true;
@@ -390,24 +465,22 @@ function setViePrevisionel() {
 						turn = (turn + 1) % (nbEntities + 1);
 						leekTurn = turnOrder[turn];
 					} while (!inArray([caster, entity], leekTurn));
-
+					
 					if (leekTurn == entity) {
 						ok = true;
 					} else ok = false;
 				}
-
+				
 				if (ok && vie_previsionel > 0) {
 					// l'effet va s'appliquer
 					if(effect[TYPE] == EFFECT_HEAL) {
 						var val = min(effect[VALUE], getTotalLife(entity) - vie_previsionel);
-						// debugP("heal : " + val);
 						vie_previsionel += val;
 					} else {
-						// debugP("poison : " + effect[VALUE]);
 						vie_previsionel -= effect[VALUE];
 					}
 				}
-
+				
 			}
 		}
 		INFO_LEEKS[entity][VIE_PREVISIONNEL] = vie_previsionel;
@@ -416,11 +489,11 @@ function setViePrevisionel() {
 		}
 	}
 }
-
-
-
+	
+	
+	
 /**
- * Retourne le tableau d'order de jeu
+ * Retourne le tableau d'ordre de jeu
  * @return array [ turnNumber : Entity]
  */
 function getTurnOrder() {
@@ -439,7 +512,7 @@ function getTurnOrder() {
  */
 function checkKill(@aTargetEffect) {
 	for (var leek : var effectLeek in aTargetEffect) {
-		var viePrevisionnel = USE_VIE_PREVISIONNEL ? INFO_LEEKS[leek][VIE_PREVISIONNEL] : INFO_LEEKS[leek][LIFE];
+		var viePrevisionnel = USE_VIE_PREVISIONNEL ? INFO_LEEKS[leek][VIE_PREVISIONNEL] : INFO_LEEKS[leek][LIFE]; 
 		for (var effect : var turn_values in effectLeek) {
 			if (inArray([EFFECT_DAMAGE, EFFECT_POISON, EFFECT_AFTEREFFECT, EFFECT_LIFE_DAMAGE], effect)) {
 				for (var turn : var value in turn_values) {
@@ -447,8 +520,8 @@ function checkKill(@aTargetEffect) {
 				}
 			}
 		}
-
-		if (viePrevisionnel < - 20) { // on fait les calculs en fonction des valeurs moyennes des armes ; il faut donc se garder une petite marge
+		
+		if (viePrevisionnel < - 20) { // on fait les calculs en fonction des valeurs moyennes des armes ; il faut donc se garder une petite marge 
 			// on unset tout les effects et on remplace l'effet par EFFECT_KILL
 			aTargetEffect[leek] = [EFFECT_KILL : [0 : true]];
 		}
@@ -463,25 +536,25 @@ function checkKill(@aTargetEffect) {
  * Détecte les cibles pour utiliser une armes / puces
  * But : limiter les opérations pour ne pas faire les calculs sur toutes les entités
  * TODO : Prendre en compte les cibles qui sont déjà morte (poison)
- * TODO : mettre en place un cache en fonction du effect_target ? => on va l'appeler a chaque fois pour tout les tools
+ * TODO : mettre en place un cache en fonction du effect_target ? => on va l'appeler a chaque fois pour tout les tools 
  */
 function getCibleToUseTool(tool) {
 	var infoTool = ALL_INGAME_TOOLS[tool];
 	var effects = infoTool[TOOL_ATTACK_EFFECTS];
 	var cibles = [];
 	var allEntities = getAliveAllies() + getAliveEnemies();
-
+	
 	var entitiesAffectees;
 	for(var effect in effects) {
 		entitiesAffectees = arrayFilter(allEntities, getFunctionToFilterTarget(effect, ME));
-
+		
 		// on va re fitrer suivant le type de l'effet
 		if(ALL_EFFECTS[effect[TOOL_EFFECT_TYPE]][IS_HEALTHY] !== null && !effect[TOOL_MODIFIER_ON_CASTER]) { //
 			entitiesAffectees = arrayFilter(entitiesAffectees, ALL_EFFECTS[effect[TOOL_EFFECT_TYPE]][IS_HEALTHY] ? isAlly : isEnemy);
 		}
-
-		//TODO : rajouter une entité "fantome" pour les effects qui peuvent se jouer sur une case vide ? => glaive par exemple
-
+		
+		//TODO : rajouter une entité "fantome" pour les effects qui peuvent se jouer sur une case vide ? => glaive par exemple 
+		
 		for (var entity in entitiesAffectees) {
 			cibles[entity] = entity;
 		}
@@ -503,3 +576,4 @@ function haveEffect(leek,tool) {
   }
   return false;
 }
+

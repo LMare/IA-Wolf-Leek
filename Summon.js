@@ -1,9 +1,8 @@
 // dernière mise à jour le 29/04/18 par Yama et Caneton
 include("IA_Bulbe");
-include("Debug");
 
 
-global bulbeOffensif = [CHIP_ROCKY_BULB: 90, CHIP_ICED_BULB: 120, CHIP_FIRE_BULB: 225, CHIP_LIGHTNING_BULB: 240, CHIP_WIZARD_BULB: 180];
+global bulbeOffensif = [CHIP_ROCKY_BULB: 90, CHIP_ICED_BULB: 170, CHIP_FIRE_BULB: 225, CHIP_LIGHTNING_BULB: 240, CHIP_WIZARD_BULB: 220];
 global bulbeDefensif = [CHIP_HEALER_BULB: 300, CHIP_METALLIC_BULB: 270, CHIP_PUNY_BULB: 60];
 
 
@@ -24,7 +23,7 @@ function getSummonAction(@actions, @cellsAccessible, TPmax, @summon_tools) {
 				actions[nb_action] = tir;
 				nb_action++;
 			}
-			debugP(ALL_INGAME_TOOLS[tool][TOOL_NAME] + " => " + tir);
+			debugP(ALL_INGAME_TOOLS[tool][TOOL_NAME] + " => " + [tir[0], tir[1], tir[2]]);
 		}
 	}
 }
@@ -108,42 +107,85 @@ function summonBulb(CHIP, IA, ennemie, @cellsAccessible) {
 	tir[PM_USE] = tir[CELL_DEPLACE] >= 0 ? cellsAccessible[tir[CELL_DEPLACE]] : 0;
 	tir[EFFECT] = EFFECT_SUMMON;
 	tir[CALLBACK] = (function(param) { //param = [chip, IA, cellsAccessible]
+		var param_chip = 0, param_IA = 1, param_cellsAccessible = 2;
 		// appeler la fonction cache-cache si on veux se cacher avant le summon !
 		if (haveOrdonnancement(ORDONNANCEMENT_SUMMON_LAST)) { // alors on se cache
-			var tab = [];
-			for (var cell: var dist in cellsAccessible) push(tab, cell);
-			var cellCache = getCellToGo(getDangerMap(tab));
+			var map_danger;
+			if(getFightType() == FIGHT_TYPE_SOLO) {
+				var _ennemy = getNearestEnemy();
+				_ennemy = isSummon(_ennemy) ? getSummoner(_ennemy) : _ennemy;
+				map_danger = dangerCombo(getDanger([_ennemy],getLeek())); // V2, ne coute que 2-3% de plus en solo
+			} else {
+				var tab = [];
+				for (var cell: var dist in cellsAccessible) push(tab, cell);
+				map_danger = getDangerMap(tab); // V1
+			}
+
+			var cellCache = getCellToGo(map_danger);
 			moveTowardCell(cellCache);
 			CACHER = true;
 		}
-		var allCells = [];
-		CellsToUseTool(param[0], getCell(), allCells);
-		var cellOuSummon = allCells[0];
-
-		var maCell = getCell();
-		if(bulbeDefensif[param[0]] || param[0]==CHIP_LIGHTNING_BULB) {
-			var cellEne = getCenterOfGravity(getAliveEnemies());
-			var distMax = getCellDistance(cellEne, allCells[0]);
-			for (var cell in allCells) {
-				var dist = getCellDistance(cell, cellEne);
-				if(dist > distMax && lineOfSight(maCell, cell)) {
-					distMax = dist;
-					cellOuSummon = cell;
-				}
-			}
+		var allCells = getCellsToUseToolFromCell(CHIP, getCell());
+		var cellOuSummon;
+		var cellEne = getCenterOfGravity(getAliveEnemies());
+		if(bulbeDefensif[param[param_chip]] || (param[param_chip]==CHIP_LIGHTNING_BULB && haveOrdonnancement(ORDONNANCEMENT_SUMMON_LAST))) {
+			cellOuSummon = getFurthestCellToCellfromCells(cellEne, allCells);
+		} else {
+			cellOuSummon = getNearestCellToCellfromCells(cellEne, allCells);
 		}
-		var code_return = summon(param[0], cellOuSummon, param[1]);
+		var code_return = summon(param[param_chip], cellOuSummon, param[param_IA]);
   	/* Mise à jour des variables globales pour pouvoir booster et ne pas kill le bulbe */
-		var bulbe = getLeekOnCell(cellOuSummon);
-		addCoeffEffectBulbe(bulbe);
-		updateInfoLeeks();
-		getOpponent(getAliveEnemies());
-		setBoostCoeff();
+		if(code_return > 0) {
+			var bulbe = getLeekOnCell(cellOuSummon);
+			addCoeffEffectBulbe(bulbe);
+			updateInfoLeeks();
+			// getOpponent(getAliveEnemies()); pas besoin car on a fait le addCoeffEffectBulbe
+			setBoostCoeff();
+		} else {
+			debugE("Erreur sur l'appel de la fonction 'summon' : code d'erreur : " + code_return);
+			debug("cellOuSummon : " + cellOuSummon);
+		}
 		return code_return;
 	});
-  tir[PARAM] = [CHIP, IA, cellsAccessible];
+	tir[PARAM] = [CHIP, IA, cellsAccessible];
   return tir;
 }
+
+/**
+ * Réccupère la cell la plus éloigné d'une cell parmis un tableau de cells
+ */
+function getFurthestCellToCellfromCells(cell, cells) {
+	var furthestCell = cells[0];
+	var distMax = getCellDistance(cell, cells[0]);
+	for (var cellTmp in cells) {
+		var dist = getCellDistance(cellTmp, cell);
+		if(dist > distMax) {
+			distMax = dist;
+			furthestCell = cellTmp;
+		}
+	}
+	return furthestCell;
+}
+
+
+
+/**
+ * Réccupère la cell la plus proche d'une cell parmis un tableau de cells
+ */
+function getNearestCellToCellfromCells(cell, cells) {
+	var nearestCell = cells[0];
+	var distMin = getCellDistance(cell, cells[0]);
+	for (var cellTmp in cells) {
+		var dist = getCellDistance(cellTmp, cell);
+		if(dist < distMin) {
+			distMin = dist;
+			nearestCell = cellTmp;
+		}
+	}
+	return nearestCell;
+}
+
+
 
 /**
  * initialise tout les coefficients des effets pour le bulbe
@@ -202,26 +244,39 @@ function getBulbValue(CHIP, ennemie) {
 			value *= 2;
 		}
 	}
-	if (getScience() >= 400 && compteurBulbeCondition(function (bulbe_id) {
+	if (getScience() >= 400 && compteurBulbeCondition(function (bulbe_id) { // Scientifique summonner
 		return inArray([NAME_FIRE_BULB, NAME_ICED_BULB, NAME_LIGHTING_BULB], getName(bulbe_id));
 	}) == 0) {
 		value *= 10;
 	}
-	if (summonnerLife <= 0.35 * getTotalLife() && !isBulbeOffensif) {
+	if (summonnerLife <= 0.6 * getTotalLife() && !isBulbeOffensif) {
 		value *= 2;
 	}
-	if (distance >= 15 && !isBulbeOffensif) {
+	if (distance >= 15/* && !isBulbeOffensif*/) {
 		value *= 2;
 	} else {
+		/*value /= 2;*/
+	}
+	if ( // Metal bulbe
+		CHIP == CHIP_METALLIC_BULB
+		&& count(getEntities(true,  function (entity) {
+			return isSummon(entity) && getName(entity) == NAME_METALLIC_BULB;})) <= 1
+		&& (
+			scienceEnnemie >= 200
+			|| forceEnnemie >= 200
+			|| count(getEntities(false,  function (entity) {
+				return isSummon(entity) && inArray([NAME_FIRE_BULB, NAME_ICED_BULB, NAME_LIGHTING_BULB, NAME_ROCKY_BULB], getName(entity)) ;})) >= 1)  ) {
+		value *= 2;
+	} else if (CHIP == CHIP_METALLIC_BULB && count(getEntities(true,  function (entity) {
+			return isSummon(entity) && getName(entity) == NAME_METALLIC_BULB;})) <= 1 ) {
 		value /= 2;
 	}
-	if (CHIP == CHIP_METALLIC_BULB && count(getEntities(true,  function (entity) {return isSummon(entity) && getName(entity) == NAME_METALLIC_BULB;})) <= 1 && (scienceEnnemie >= 200 || forceEnnemie >= 200 || count(getEntities(false,  function (entity) {return isSummon(entity) && inArray([NAME_FIRE_BULB, NAME_ICED_BULB, NAME_LIGHTING_BULB, NAME_ROCKY_BULB], getName(entity)) ;})) <= 1)  ) {
+	if (CHIP == CHIP_HEALER_BULB && getFightType() == FIGHT_TYPE_SOLO &&  magieEnnemie >= 300 && count(getEntities(true,  function (entity) {return isSummon(entity) && getName(entity) == NAME_HEALER_BULB;})) <= 1) {
 		value *= 2;
 	}
-	if (CHIP == CHIP_HEALER_BULB && magieEnnemie >= 300 && count(getEntities(true,  function (entity) {return isSummon(entity) && getName(entity) == NAME_HEALER_BULB;})) <= 1) {
-		value *= 2;
-	}
+	debugC("Bulbe score temp: " + getChipName(CHIP) + " => " + value, COLOR_POMEGRANATE);
 	value *= (1 / (countBulbe / 4 + 0.5));
+	debugC("Bulbe score : " + getChipName(CHIP) + " => " + value, COLOR_POMEGRANATE);
 	return value;
 }
 

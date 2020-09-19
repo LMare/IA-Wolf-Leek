@@ -1,11 +1,15 @@
+
 /**
  * Auteur : Caneton
  * getCenterOfGravity => retourne le centre de gravité d'un goupe de poireau
  * PS: j'ai calculé les écarts types ( == moyennes des écarts à la moyenne) selon les 2 axes
  * 			Ils sont pour l'instant en debug mais il serait surement intéressant de les retourner
  **/
-include("MapDangerV2");
+include("GLOBALS");
+include("MapDangerV1");
 include("Debug");
+include("COLOR");
+include("Territoire");
 
 function getCenterOfGravity(leeks) {
 	var distanceMoyenne;
@@ -49,12 +53,12 @@ function getCenterOfGravity(leeks) {
 * @auteur : rayman26, corrigé par Caneton^^
 *	Avancement : Terminé !
 * Parametres :
-*							cellule : La cellule du poireau dont on veut determiner les cases accessibles
-*							mp: Le nombre de MP qu'il possède
+* 	cellule : La cellule du poireau dont on veut determiner les cases accessibles
+*	mp: Le nombre de MP qu'il possède
 *	Retour : tableau associatif avec pour clé la cellule et pour valeur la distance pour aller sur cette cellule
 *
 *	Evolution possible du code : ajouter en paramètre un tableau de poireau à ignorer
-*															=> peut permettre de calculer les cases accessibles d'un ennemis quand on est suceptible de se déplacer après
+*		=> peut permettre de calculer les cases accessibles d'un ennemis quand on est suceptible de se déplacer après
 **/
 function accessible(cellule, mp)
 {
@@ -110,119 +114,7 @@ function accessible(cellule, mp)
 /*****************************************************	Déplacement *******************************************************************************/
 //TODO: définir la méthode que l'on va utilisé pour se déplacer
 
-/**
-*	<Cache_Cache_de_Ray>
-**/
 
-// récupère toutes les cells où je peux me déplacer sans ligne de vue avec celles où peux se déplacer l'adversaire
-function getCacheCacheCells(me, TheEnemy, mp, mpAdv)
-{
-    var my_move_cells = accessible(me, mp);
-    var enemy_move_cells = accessible(TheEnemy, mpAdv);
-    var safe_cells = [];
-	var isSafe;
-
-    for (var myCell : var myMP in my_move_cells)
-	{
-		isSafe = true;
-		for (var HisCell : var HisMP in enemy_move_cells)
-		{
-			if (lineOfSight(myCell, HisCell))
-			{
-				isSafe = false;
-				break;
-			}
-		}
-		if(isSafe)
-		{
-			push(safe_cells, myCell);
-		}
-    }
-    return safe_cells;
-}
-//var cellEnemy = getCell(TheEnemy);
-
-/* [Caneton] : j'ai un conflit et je sais pas quel est la bonne version,
- à la vue du commentaire en dessous je commente cette fonction
- getCellToGo est plus adapté pour le cache-cache de toutes les façons*/
-function getNearestCellFromCell(safe_cells, cellEnemy) // PB ? // Quel est le problème ?
-{
-	var dist = 1000;
-	var safe_cellule;
-	for (var i in safe_cells)
-	{
-		if(i == null)
-		{
-			safe_cellule = null;
-		}
-		else
-		{
-			if(getCellDistance(i, cellEnemy) < dist)
-			{
-				dist = getCellDistance(i, cellEnemy);
-				safe_cellule = i;
-			}
-		}
-	}
-	return safe_cellule;
-}
-
-
-/*function getNearestCellFromCell(cell, tableau_cellules) {
-	var cellule;
-	var tableau_distances = [];
-	var position;
-	for (cellule in tableau_cellules) {
-		push(tableau_distances, getCellDistance(cell, cellule));
-	}
-	position = search(tableau_distances, arrayMin(tableau_distances));
-	var tab_cells = tableau_cellules;
-	return tab_cells[position];
-}*/
-
-// récupère la cell la plus proche de l'adversaire parmis les cells où je peux me planquer
-function getCacheCacheCell(me, TheEnemy, mp, mpAdv)
-{
-    var safe_cell;
-    var safe_cells = getCacheCacheCells(me, TheEnemy, mp, mpAdv);
-
-    if (safe_cells != null)
-	{
-        safe_cell = getNearestCellFromCell(safe_cells, TheEnemy);
-        return safe_cell;
-    }
-	else
-	{
-        return null;
-    }
-}
-
-// fonctionne comme un "moveAwayFrom()"
-function moveCacheCache(me, TheEnemy, mp, mpAdv)
-{
-	var cache_cache_cell = getCacheCacheCell(me, TheEnemy, mp, mpAdv);
-	if (cache_cache_cell != null)
-	{
-		if(cache_cache_cell === getCell(me))
-		{
-			moveToward(getNearestAlly());
-		}
-		else
-		{
-			moveTowardCell(cache_cache_cell);
-		}
-	}
-	else
-	{
-		//moveToward(getNearestAlly()); //Sert a rien en solo, car a moins d'avoir invoqué un bulbe, on a pas d'alliés
-		moveToward(getNearestEnemy());
-	}
-}
-
-
-/**
-*	</Cache_Cache_de_Ray>
-**/
 
 // =========================
 // La fonction getCellToGo renvoit, a partir de la map de danger, une cellule sure :
@@ -233,7 +125,9 @@ function getCellToGo(map_danger_)
 	var cell;
 	if(count(getAliveAllies()) >= 2)
 	{
-		cell = getCenterOfGravity(getAliveAllies());
+		var entities = TITAN ? getAliveAllies()+getAliveEnemies() : getAliveAllies();
+		cell = getCenterOfGravity(entities);
+		mark(cell, COLOR_GREEN);
 		cell = getNearestCellToGoFromCell(cell, map_danger_);
 		return cell;
 	}
@@ -261,7 +155,7 @@ function getNearestCellToGoFromCell(cellule, map_danger_) //map_danger_ de la fo
 	}
 
 	var bestCells = getCellsDistanceOpti(SaferCells, cellule, 4);
-
+	mark(bestCells, COLOR_YELLOW);
 	return bestCells[randInt(0, count(bestCells))];
 	// return getNearestCellFromCell_2(cellule, SaferCells);
 }

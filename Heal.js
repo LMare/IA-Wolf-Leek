@@ -7,30 +7,21 @@ include("Utils");
 
 
 
-function getHealAction(@actions, @cellsAccessible, Allies, Ennemies, TPmax, @heal_tools)
-{
+function getHealAction(@actions, @cellsAccessible, Allies, Ennemies, TPmax, @heal_tools) {
 	var nb_action = count(actions);
 	var toutPoireau = Allies + Ennemies;
-	for (var tool in heal_tools)
-	{
+	for (var tool in heal_tools) {
 		if(ERROR_TOOLS[tool]) continue;
 		var tir = [];
-		if ( can_use_tool( tool , TPmax ) )
-		{
+		if ( can_use_tool( tool , TPmax ) ) {
 			var area = ALL_INGAME_TOOLS[tool][TOOL_AOE_TYPE] ;
-			if(area == AREA_POINT)
-			{
+			if(area == AREA_POINT) {
 				tir = soigner(tool, Allies, cellsAccessible);
-			}
-			else
-			{
-				if(tool == WEAPON_B_LASER)
-				{
+			} else {
+				if(tool == WEAPON_B_LASER) {
 					var cellToCheck = getCellsToCheckForLaser(cellsAccessible, getAliveAllies());
 			 		tir = healTypeLigne(tool, cellToCheck, cellsAccessible);
-				}
-				else
-				{
+				} else {
 					tir = healTypeAOE(toutPoireau, tool, cellsAccessible);
 				}
 			}
@@ -93,7 +84,7 @@ function healTypeLigne(tool, @cellToCheck, @cellsAccessible) {
 			];
 			var oldPosition = INFO_LEEKS[ME][CELL];
 			INFO_LEEKS[ME][CELL] = cell[from]; // on simule le déplacement
-			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true);
+			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true, null);
 			var killAllie = false;
 			for(var leek : var effects in aTargetEffect) {
 				if(isAlly(leek) && effects[EFFECT_DAMAGE] != null && effects[EFFECT_DAMAGE][0] >= getLife(leek)) {
@@ -130,10 +121,10 @@ function soigner(tool, allies, @cellsAccessible) { // pour les puces de soins sa
 			if(!NOT_USE_ON[tool][allie] && !haveEffect(allie,tool)) {
 				cellAllie = getCell(allie);
 				cell_deplace = getCellToUseToolsOnCell(tool, cellAllie, cellsAccessible);
-				if (cell_deplace != -2) {
+				if (cell_deplace != NO_CELL) {
 					var oldPosition = INFO_LEEKS[ME][CELL];
 					INFO_LEEKS[ME][CELL] = cell_deplace; // on simule le déplacement
-					var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true);
+					var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true, null);
 					valeur = getValueOfTargetEffect(aTargetEffect);
 					INFO_LEEKS[ME][CELL] = oldPosition;
 					if(MINIMUM_TO_USE[tool]===null || MINIMUM_TO_USE[tool]<= valeur) {
@@ -167,10 +158,6 @@ function healTypeAOE(toutPoireau, tool, @cellsAccessible) {
 	var bestAction = [];
 	var distanceBestAction = 0;
 
-	var heal = 0;
-	var degat = 0;
-	var boostMaxLife = 0;
-
 	var cell_deplace;
 	var valeurMax = 0;
 	var maxRange = ALL_INGAME_TOOLS[tool][TOOL_MAX_RANGE];
@@ -184,10 +171,10 @@ function healTypeAOE(toutPoireau, tool, @cellsAccessible) {
 					if (!deja_fait[cell]) {
 						deja_fait[cell] = true;
 						cell_deplace = getCellToUseToolsOnCell(tool, cell, cellsAccessible);
-						if (cell_deplace != -2) {
+						if (cell_deplace != NO_CELL) {
 							var oldPosition = INFO_LEEKS[ME][CELL];
 							INFO_LEEKS[ME][CELL] = cell_deplace;
-							var aTargetEffect = getTargetEffect(ME, tool, cell, true);
+							var aTargetEffect = getTargetEffect(ME, tool, cell, true, null);
 							var valeur = getValueOfTargetEffect(aTargetEffect);
 							INFO_LEEKS[ME][CELL] = cell_deplace;
 							if (valeur > valeurMax || valeur == valeurMax && cellsAccessible[cell_deplace] < distanceBestAction) {

@@ -40,7 +40,6 @@ function getDangerMap(cells_accessibles) {
 					tab_scores[cell1] = 0;
 				}
 				if (lineOfSight(cell1, cell2, allLeeks) && getDistance(cell1, cell2) <= 8) {	// Si il y a une ligne de vue,
-					// TODO: ajuster la valeur de la distance
 					tab_scores[cell1] = tab_scores[cell1] + coeff_dangerosite[enemy];
 				}
 			}
@@ -48,7 +47,7 @@ function getDangerMap(cells_accessibles) {
 	}
 	for (var cell: var danger in tab_scores) {
 		if (inArray(myRC, cell)) {
-			tab_danger[cell] = danger;
+			tab_danger[cell] = TITAN ? 0 : danger;
 		}
 	}
 	return tab_danger;

@@ -129,7 +129,7 @@ function attaqueTypeLigne(tool, @cellToCheck, @cellsAccessible) {
 			];
 			var oldPosition = INFO_LEEKS[ME][CELL];
 			INFO_LEEKS[ME][CELL] = cell[from]; // on simule le déplacement
-			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true);
+			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true, null);
 			checkKill(aTargetEffect);
 			var valeur = getValueOfTargetEffect(aTargetEffect);
 			INFO_LEEKS[ME][CELL] = oldPosition;
@@ -163,7 +163,7 @@ function frappeDuDemon(toutEnnemis, @cellsAccessible) {
 	var distanceBestAction = 0;
 	var valeurMax = 0;
 	var deja_fait = [];
-	var lost = getTargetEffect(ME, CHIP_DEVIL_STRIKE, getCell(), false)[ME][EFFECT_DAMAGE][0]; // pas besoin de simuler le déplacement car le dernier paramètre est à false
+	var lost = getTargetEffect(ME, CHIP_DEVIL_STRIKE, getCell(), false, null)[ME][EFFECT_DAMAGE][0]; // pas besoin de simuler le déplacement car le dernier paramètre est à false
 	if (lost < 100) {
 		for (var i = 0; i < count(toutEnnemis); i++) {
 			var cellE = getCell(toutEnnemis[i]);
@@ -174,7 +174,7 @@ function frappeDuDemon(toutEnnemis, @cellsAccessible) {
 					if (cellsAccessible[j] !== null) {
 						var oldPosition = INFO_LEEKS[ME][CELL];
 						INFO_LEEKS[ME][CELL] = cellsAccessible[j]; // on simule le déplacement
-						var aTargetEffect = getTargetEffect(ME, CHIP_DEVIL_STRIKE, j, true);
+						var aTargetEffect = getTargetEffect(ME, CHIP_DEVIL_STRIKE, j, true, null);
 						checkKill(aTargetEffect);
 						var valeur = getValueOfTargetEffect(aTargetEffect);
 						INFO_LEEKS[ME][CELL] = oldPosition;
@@ -228,10 +228,10 @@ function attaqueTypeAOE(toutEnnemis, tool, @cellsAccessible) {
 						var sommeRenvoi = 0;
 						var sommeVolVie = 0;
 						var degat, degat_renvoyer, volDeVie;
-						if (cell_deplace != -2) {
+						if (cell_deplace != NO_CELL) {
 							var oldPosition = INFO_LEEKS[ME][CELL];
 							INFO_LEEKS[ME][CELL] = cell_deplace; // on simule le déplacement
-							var aTargetEffect = getTargetEffect(ME, tool, cell, true);
+							var aTargetEffect = getTargetEffect(ME, tool, cell, true, null);
 							checkKill(aTargetEffect);
 							var valeur = getValueOfTargetEffect(aTargetEffect);
 							INFO_LEEKS[ME][CELL] = oldPosition;
@@ -284,13 +284,13 @@ function attaqueTypePoint(toutEnnemis, tool, @cellsAccessible) {
 
 		} else {
 			cell_deplace = getCellToUseToolsOnCell(tool, cellEnnemis, cellsAccessible);
-			ok = cell_deplace !== -2;
+			ok = cell_deplace !== NO_CELL;
 		}
 
 		if (ok) { //la cellule doit être atteignable
 			var oldPosition = INFO_LEEKS[ME][CELL];
 			INFO_LEEKS[ME][CELL] = cell_deplace; // on simule le déplacement
-			var aTargetEffect = getTargetEffect(ME, tool, cellEnnemis, true);
+			var aTargetEffect = getTargetEffect(ME, tool, cellEnnemis, true, null);
 			valeur = getValueOfTargetEffect(aTargetEffect);
 			INFO_LEEKS[ME][CELL] = oldPosition;
 			if (valeur > bestValeur || valeur == bestValeur && cellsAccessible[cell_deplace] < distanceBestAction) {
