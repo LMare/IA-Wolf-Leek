@@ -11,14 +11,14 @@ include("Debug");
 /**
 * @auteur: Caneton
 * renvoit la cell la plus proche pour utiliser tool parmis les cellsAccessibles
-* Si non pas de cells accessible pour utiliser tool=> valeur du return : -2
-* 	/!\ cellsAccecible est un tableau, avec Tab[i] = longueur du chemin pour aller sur la cell i !
+* Si non pas de cells accessible pour utiliser tool=> valeur du return : NO_CELL (= -2)
+* 	/!\ cellsAccessible est un tableau, avec Tab[i] = longueur du chemin pour aller sur la cell i !
 **/
-function getCellToUseToolsOnCell(tool, cellVisee, @cellsAccessible) {
+function getCellToUseToolsOnCell(tool, cellVisee, cellsAccessible) {
 	var cells = [];
 	CellsToUseTool (tool, cellVisee, cells);
 	var me = getLeek();
-	var cellMin = -2;
+	var cellMin = NO_CELL;
 	var min = 100;
 	for (var cell in cells) {
 		var distance = cellsAccessible[cell];
@@ -34,8 +34,30 @@ function getCellToUseToolsOnCell(tool, cellVisee, @cellsAccessible) {
 }
 
 /**
+ * @Lmare
+ * Retoune toutes les cells qui où tool peut être utilisé depuis la cell from
+ * Utile pour avoir les cases pour summon
+ */
+function getCellsToUseToolFromCell(tool, from) {
+	var me = getLeek();
+	var cells = [];
+	CellsToUseTool (tool, from, cells);
+	var cellPossible = [];
+	var i = 0;
+	for(var cell in cells) {
+		if (isEmptyCell(cell) && lineOfSight(from, cell, me)) {
+			cellPossible[i++] = cell;
+		}
+	}
+	return @cellPossible;
+}
+
+
+
+/**
  * @auteur: Caneton
  * Procédure permettant d'obtenir toutes les cells d'où l'on peux utiliser tool sur cellVisee  => Fait la même chose que getCellsToUseChip/Weapon
+ * (ne prends pas en compte les entités qui pourrait bloquer les lignes de vue)
  * allCells est le tableau de retour
  **/
 function CellsToUseTool (tool, cellVisee, @allCells) {
@@ -51,6 +73,7 @@ function CellsToUseTool (tool, cellVisee, @allCells) {
 		}
 	}
 	if (inLine) {
+
 		for (var i = mini; i <= maxi ; i++) {
 			if(_initInLineCell[cellVisee][i] !== null) {
 				allCells = allCells + _initInLineCell[cellVisee][i];

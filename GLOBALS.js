@@ -13,10 +13,14 @@ global ERROR_TOOLS;
 global USE_VIE_PREVISIONNEL = false; // vérification des kills via les effets ; mettre à true en solo ou si on joue poison
 global ONLY_ONE_SHOOT = false; // ne tir qu'une seule fois dans le doAction ; conseillé si on utilise la vie prévisionnelle + la magie
 global COMBO = [];
+global NO_CELL = -2;
 
 global INFO_LEEKS = [];
 
-global ID = 0, ABSOLUTE_SHIELD = 1, RELATIVE_SHIELD = 2, STRENGTH = 3, DAMAGE_RETURN = 4, MAGIC = 5, PT = 6, MP = 7, CELL = 8, LIFE = 9, MAX_LIFE = 10, SAGESSE = 11, VIE_PREVISIONNEL = 99;
+global ID = 0, ABSOLUTE_SHIELD = 1, RELATIVE_SHIELD = 2, STRENGTH = 3, DAMAGE_RETURN = 4, MAGIC = 5, PT = 6, MP = 7, CELL = 8, LIFE = 9, MAX_LIFE = 10, SAGESSE = 11, RESISTANCE = 12, SCIENCE = 13, AGILITY = 14, VIE_PREVISIONNEL = 99;
+
+
+global TITAN = false;
 
 
 function updateInfoLeeks() {//TODO : mettre d'autres caractéristiques avec des constantes associées
@@ -24,18 +28,21 @@ function updateInfoLeeks() {//TODO : mettre d'autres caractéristiques avec des 
 	var leeks = getAliveAllies()+ getAliveEnemies();
 	for (var leek in leeks) {
 		tab[leek] = [
-			ID 			 : leek,
+			ID 				: leek,
 			ABSOLUTE_SHIELD : getAbsoluteShield(leek),
 			RELATIVE_SHIELD : getRelativeShield(leek),
-			STRENGTH		 : max(0,getStrength(leek)),
-			DAMAGE_RETURN	 : getDamageReturn(leek),
-			MAGIC		 : max(0,getMagic(leek)),
-			PT			 : getTP(leek),
-			MP			 : getMP(leek),
-			CELL			 : getCell(leek),
-			LIFE			 : getLife(leek),
-			MAX_LIFE		 : getTotalLife(leek),
-			SAGESSE		 : getWisdom(leek)
+			STRENGTH		: max(0,getStrength(leek)),
+			DAMAGE_RETURN	: getDamageReturn(leek),
+			MAGIC			: max(0,getMagic(leek)),
+			PT				: getTP(leek),
+			MP				: getMP(leek),
+			CELL			: getCell(leek),
+			LIFE			: getLife(leek),
+			MAX_LIFE		: getTotalLife(leek),
+			SAGESSE			: getWisdom(leek),
+			RESISTANCE		: getResistance(leek),
+			SCIENCE			: getScience(leek),
+			AGILITY			: getAgility(leek)
 		];
 	}
 	INFO_LEEKS = @tab;
@@ -87,6 +94,148 @@ global
 	NAME_WIZARD_BULB 	= "wizard_bulb";
 
 
+// Caractéristique des bulbes sous la Forme de INFO_LEEKS
+// Afin de pouvoir calculer les possibilités d'un bulbe avant de le summon
+//TODO: faire évoluer INFO_LEEKS & getTargetEffect pour pouvoir les utiliser
+global VIRTUAL_BULB = -999;
+global VIRTUAL_METALLIC_BULB = [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 0,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 9,
+	MP				: 2,
+	CELL			: null,
+	LIFE			: 1100,
+	MAX_LIFE		: 1100,
+	SAGESSE			: 0,
+	RESISTANCE		: 300,
+	SCIENCE			: 200,
+	AGILITY			: 100
+];
+global VIRTUAL_HEALER_BULB = [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 0,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 8,
+	MP				: 6,
+	CELL			: null,
+	LIFE			: 400,
+	MAX_LIFE		: 400,
+	SAGESSE			: 300,
+	RESISTANCE		: 0,
+	SCIENCE			: 0,
+	AGILITY			: 100
+];
+global VIRTUAL_PUNY_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 100,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 7,
+	MP				: 5,
+	CELL			: null,
+	LIFE			: 300,
+	MAX_LIFE		: 300,
+	SAGESSE			: 100,
+	RESISTANCE		: 100,
+	SCIENCE			: 100,
+	AGILITY			: 100
+];
+global VIRTUAL_LIGHTING_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 400,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 10,
+	MP				: 6,
+	CELL			: null,
+	LIFE			: 600,
+	MAX_LIFE		: 600,
+	SAGESSE			: 0,
+	RESISTANCE		: 0,
+	SCIENCE			: 200,
+	AGILITY			: 100
+];
+global VIRTUAL_ROCKY_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 200,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 8,
+	MP				: 3,
+	CELL			: null,
+	LIFE			: 600,
+	MAX_LIFE		: 600,
+	SAGESSE			: 0,
+	RESISTANCE		: 200,
+	SCIENCE			: 0,
+	AGILITY			: 100
+];
+global VIRTUAL_ICED_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 300,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 8,
+	MP				: 3,
+	CELL			: null,
+	LIFE			: 500,
+	MAX_LIFE		: 500,
+	SAGESSE			: 0,
+	RESISTANCE		: 0,
+	SCIENCE			: 200,
+	AGILITY			: 100
+];
+global VIRTUAL_FIRE_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 300,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 0,
+	PT				: 9,
+	MP				: 5,
+	CELL			: null,
+	LIFE			: 500,
+	MAX_LIFE		: 500,
+	SAGESSE			: 0,
+	RESISTANCE		: 0,
+	SCIENCE			: 0,
+	AGILITY			: 100
+];
+global VIRTUAL_WIZARD_BULB =  [
+	ID 				: VIRTUAL_BULB,
+	ABSOLUTE_SHIELD : 0,
+	RELATIVE_SHIELD : 0,
+	STRENGTH		: 0,
+	DAMAGE_RETURN	: 0,
+	MAGIC			: 300,
+	PT				: 8,
+	MP				: 7,
+	CELL			: null,
+	LIFE			: 600,
+	MAX_LIFE		: 300,
+	SAGESSE			: 0,
+	RESISTANCE		: 0,
+	SCIENCE			: 0,
+	AGILITY			: 100
+];
+
+
 global TURRET_ALLY;
 global TURRET_ENNEMY;
 if(getFightType() == FIGHT_TYPE_TEAM && TOUR == 1) {
@@ -127,6 +276,9 @@ global MAX_RANGE = (function () {
 // Permet de ne pas utiliser une arme / puce si la valeur est trop faible
 // Note : le contrôle sur la vatiable MINIMUM_TO_USE n'est pas fait dans tout les fichiers
 global MINIMUM_TO_USE;
+
+
+
 // permet de ne pas utiliser une arme / chip sur une entitée précise
 // Note : le contrôle sur la vatiable NOT_USE_ON n'est pas fait dans tout les fichiers
 global NOT_USE_ON;
@@ -141,7 +293,6 @@ function countLeekAllie() {
 	}
 	return cpt;
  }
-
 
 
 global _RESU_PRIORITY = [
@@ -271,7 +422,7 @@ global ALL_EFFECTS = [
 	],
 	// EFFET SHACKLE
 	EFFECT_SHACKLE_TP : [
-		COEFF_EFFECT : 40,
+		COEFF_EFFECT : 35,
 		BOOSTED_BY : CHARACTERISTIC_MAGIC,
 		IS_RELATIF : false,
 		IS_SPECIAL : false,
@@ -284,7 +435,7 @@ global ALL_EFFECTS = [
 		]
 	],
 	EFFECT_SHACKLE_MP : [
-		COEFF_EFFECT : 35,
+		COEFF_EFFECT : 30,
 		BOOSTED_BY : CHARACTERISTIC_MAGIC,
 		IS_RELATIF : false,
 		IS_SPECIAL : false,
@@ -324,7 +475,7 @@ global ALL_EFFECTS = [
 	],
 	// EFFECT BUFF
 	EFFECT_BUFF_TP : [
-		COEFF_EFFECT : 80,
+		COEFF_EFFECT : 60,
 		BOOSTED_BY : CHARACTERISTIC_SCIENCE,
 		IS_RELATIF : false,
 		IS_SPECIAL : false,
@@ -337,7 +488,7 @@ global ALL_EFFECTS = [
 		]
 	],
 	EFFECT_BUFF_MP : [
-		COEFF_EFFECT : 80,
+		COEFF_EFFECT : 45,
 		BOOSTED_BY : CHARACTERISTIC_SCIENCE,
 		IS_RELATIF : false,
 		IS_SPECIAL : false,
@@ -770,22 +921,21 @@ global BoostsTools = []; // Pour les boost
 global TacticsTools = []; // Les puces tactiques
 global SummonTools = []; //Les bulbes et la résurrection
 
-global Setup=false;
+global Setup = false;
 
-function SetupAll(){
-	if(Setup==true) return Setup;
+function SetupAll() {
+	if(Setup) return Setup;
 	var ope = getOperations();
 	SetupTools( AttackTools , ShieldTools , HealTools , BoostsTools , TacticsTools , SummonTools ) ;
 	Setup = true;
-	ope = (getOperations()-ope)/OPERATIONS_LIMIT*100;
-	debugWP("Setup reussi ! ("+ope+"%)");
+	ope = (getOperations() - ope) / OPERATIONS_LIMIT * 100;
+	debugWP("Setup reussi ! (" + ope + "%)");
 	return Setup;
 }
 
-function SetupTools( @attack_tools , @shield_tools , @heal_tools , @boost_tools , @tactics_tools , @summon_tools ) //equipe les puces et les armes
-{
+function SetupTools(@attack_tools, @shield_tools, @heal_tools, @boost_tools, @tactics_tools, @summon_tools) {
 	var Tools = getChips() + getWeapons();
-	for(var i=0;i<count(Tools);i++){//trier les chips
+	for(var i = 0; i < count(Tools); i++) {//trier les chips
     	//Pour les attaques
 		var effectPoison = getValeurEffect(Tools[i],  EFFECT_POISON,  ME,  "moy");
 		var effectDamage = getValeurEffect(Tools[i], EFFECT_DAMAGE, ME,"moy");
@@ -798,9 +948,9 @@ function SetupTools( @attack_tools , @shield_tools , @heal_tools , @boost_tools 
 		var AllAttaque = effectPoison + effectDamage + effectDebuffMagic + effectDebuffStrength + effectDebuffPT + effectDebuffPM + effectLifeDamage + effectNovaDamage;
 
 		//Pour les Shield + renvoie
-		var effRelaShield=getValeurEffect(Tools[i],EFFECT_RELATIVE_SHIELD, ME,"moy");
-		var effectShield = getValeurEffect(Tools[i],EFFECT_ABSOLUTE_SHIELD, ME,"moy");
-		var effectRenvoie = getValeurEffect(Tools[i],EFFECT_DAMAGE_RETURN, ME,"moy");
+		var effRelaShield = getValeurEffect(Tools[i], EFFECT_RELATIVE_SHIELD, ME,"moy");
+		var effectShield = getValeurEffect(Tools[i], EFFECT_ABSOLUTE_SHIELD, ME,"moy");
+		var effectRenvoie = getValeurEffect(Tools[i], EFFECT_DAMAGE_RETURN, ME,"moy");
 		var effectStealShield = getValeurEffect(Tools[i], EFFECT_STEAL_ABSOLUTE_SHIELD, ME, "moy");
 		var effectVulnerability = getValeurEffect(Tools[i], EFFECT_VULNERABILITY, ME, "moy");
 		var AllShield = effRelaShield + effectShield + effectRenvoie + effectStealShield + effectVulnerability;
@@ -842,66 +992,57 @@ function SetupTools( @attack_tools , @shield_tools , @heal_tools , @boost_tools 
 	}
 }
 
-function getToolsDammage(){
-	if(Setup==false) SetupAll();
+function getToolsDammage() {
+	if(!Setup) SetupAll();
 	return AttackTools;
 }
-function getToolsShield(){
-	if(Setup==false) SetupAll();
+function getToolsShield() {
+	if(!Setup) SetupAll();
 	return ShieldTools;
 }
-function getToolsBoost(){
-	if(Setup==false) SetupAll();
+function getToolsBoost() {
+	if(!Setup) SetupAll();
 	return BoostsTools;
 }
-function getToolsTactics(){
-	if(Setup==false) SetupAll();
+function getToolsTactics() {
+	if(!Setup) SetupAll();
 	return TacticsTools;
 }
-function getToolsSummon(){
-	if(Setup==false) SetupAll();
+function getToolsSummon() {
+	if(!Setup) SetupAll();
 	return SummonTools;
 }
-function getToolsHeal(){
-	if(Setup==false) SetupAll();
+function getToolsHeal() {
+	if(!Setup) SetupAll();
 	return HealTools;
 }
 
-function getValeurEffect(tool, effectVoulu, leek, valeur){
-	if(tool==null){
+function getValeurEffect(tool, effectVoulu, leek, valeur) {
+	if(tool == null){
 		debugEP("arg tool est null in getValeurEffect");
 		return false;
 	}
-	var effects;
-	if(isChip(tool)){
-		effects = getChipEffects(tool);
-	}else{
-		effects = getWeaponEffects(tool);
-	}
-	for (var effect in effects) //plus efficace que for (var i = 0; i < count(effects); i++)
-	{
-		if (effect[0] == effectVoulu)
-		{//on cherche l'effet damage
-				var nbrTour=effect[3];
-				if(effect[3]==0) nbrTour=1;
+	var effects = isChip(tool) ? getChipEffects(tool) : getWeaponEffects(tool);
+	for (var effect in effects) {
+		if (effect[TYPE] == effectVoulu) {
+				var nbrTour=effect[TURNS];
+				if(effect[TURNS]==0) nbrTour = 1;
 				var Valeur = 0;
-				if(valeur=="moy")Valeur = (effect[1] + effect[2]) / 2 * nbrTour;//moyenne
-				else if(valeur=="-")Valeur = effect[1] * nbrTour;  //le minimum
-				else if(valeur=="moy-")Valeur = ((effect[1]+effect[2])/2+effect[1])/2 * nbrTour;//moyenne en - et moy
-				else if(valeur=="+")Valeur = effect[2]* nbrTour; //le maximum
+				if(valeur=="moy") Valeur = (effect[MIN] + effect[MAX]) / 2 * nbrTour;//moyenne
+				else if(valeur=="-") Valeur = effect[MIN] * nbrTour;  //le minimum
+				else if(valeur=="moy-") Valeur = ((effect[MIN] + effect[MAX]) / 2 + effect[MIN]) / 2 * nbrTour;//moyenne en - et moy
+				else if(valeur=="+") Valeur = effect[MAX] * nbrTour; //le maximum
 				else debugEP("[error-getValeurEffect] arg valeur wrong");
 				var amelioration = 0;
-				if(effectVoulu == EFFECT_ABSOLUTE_SHIELD || effectVoulu == EFFECT_RELATIVE_SHIELD) amelioration = getResistance(leek);
-		  if(effectVoulu == EFFECT_DAMAGE_RETURN) amelioration = getAgility(leek);
-				if(effectVoulu == EFFECT_HEAL || effectVoulu == EFFECT_BOOST_MAX_LIFE) amelioration = getWisdom(leek);
-				if(effectVoulu == EFFECT_DAMAGE)amelioration = getStrength(leek);
-				if(effectVoulu == EFFECT_POISON || effectVoulu == EFFECT_SHACKLE_STRENGTH || effectVoulu == EFFECT_SHACKLE_MAGIC || effectVoulu == EFFECT_SHACKLE_TP|| effectVoulu == EFFECT_SHACKLE_MP) amelioration = getMagic(leek);
-				if(effectVoulu == EFFECT_BUFF_STRENGTH || effectVoulu == EFFECT_BUFF_WISDOM || effectVoulu == EFFECT_BUFF_RESISTANCE || effectVoulu == EFFECT_BUFF_AGILITY||
-			 effectVoulu == EFFECT_BUFF_TP || effectVoulu == EFFECT_BUFF_MP || effectVoulu == EFFECT_RAW_BUFF_TP || effectVoulu == EFFECT_RAW_BUFF_MP ||
-			 effectVoulu == EFFECT_NOVA_DAMAGE) amelioration = getScience(leek);
-				if(effectVoulu == EFFECT_DEBUFF || effectVoulu == EFFECT_ANTIDOTE || effectVoulu == EFFECT_INVERT || effectVoulu == EFFECT_TELEPORT) amelioration = 0;
+				if(inArray([EFFECT_ABSOLUTE_SHIELD, EFFECT_RELATIVE_SHIELD], effectVoulu)) amelioration = getResistance(leek);
+				if(effectVoulu == EFFECT_DAMAGE_RETURN) amelioration = getAgility(leek);
+				if(inArray([EFFECT_HEAL, EFFECT_BOOST_MAX_LIFE], effectVoulu)) amelioration = getWisdom(leek);
+				if(effectVoulu == EFFECT_DAMAGE) amelioration = getStrength(leek);
+				if(inArray([EFFECT_POISON, EFFECT_SHACKLE_STRENGTH, EFFECT_SHACKLE_MAGIC, EFFECT_SHACKLE_TP, EFFECT_SHACKLE_MP], effectVoulu)) amelioration = getMagic(leek);
+				if(inArray([EFFECT_BUFF_STRENGTH, EFFECT_BUFF_WISDOM, EFFECT_BUFF_RESISTANCE, EFFECT_BUFF_AGILITY, EFFECT_BUFF_TP, EFFECT_BUFF_MP, EFFECT_NOVA_DAMAGE], effectVoulu)) amelioration = getScience(leek);
+				if(inArray([EFFECT_DEBUFF, EFFECT_ANTIDOTE, EFFECT_INVERT, EFFECT_TELEPORT, EFFECT_RAW_BUFF_MP, EFFECT_RAW_BUFF_TP], effectVoulu)) amelioration = 0;
 
-		  return Valeur*(1+amelioration/100) + 1;
+				return Valeur * ( 1 + amelioration / 100) + 1;
 			}
 		}
 	return 0;// si pas de "effect" alors return null
@@ -909,8 +1050,7 @@ function getValeurEffect(tool, effectVoulu, leek, valeur){
 
 // FIN fonctions de setup Pseud3mys  //
 
-function can_use_tool( tool_id , TPmax )
-{
+function can_use_tool(tool_id, TPmax) {
 	return ((ALL_INGAME_TOOLS[tool_id][TOOL_IS_WEAPON] && (TPmax >= ALL_INGAME_TOOLS[tool_id][TOOL_PT_COST] + 1 || TPmax == ALL_INGAME_TOOLS[tool_id][TOOL_PT_COST] && getWeapon() == tool_id)) || (!ALL_INGAME_TOOLS[tool_id][TOOL_IS_WEAPON] && getCooldown(tool_id) == 0 && TPmax >= ALL_INGAME_TOOLS[tool_id][TOOL_PT_COST])) ;
 }
 
@@ -941,103 +1081,82 @@ global TOOL_TARGET_SUMMONS = "target summons" ;
 global TOOL_TARGET_NON_SUMMONS = "target non summons" ;
 global TOOL_TARGET_CASTER = "target caster" ;
 
-if ( getTurn() == 1 ) // je n'ai pas ultra compris l'idée des globales fonctions pour qu'elle ne se lancent que le premier tour ^^'
-{
-	//var op_ordo = getOperations() ;
-	create_all_tools_tab() ;
-	//debugEP( getOperations()-op_ordo ) ;
-	//debugEP( ALL_INGAME_TOOLS ) ;
-
-
-
-
+if (TOUR == 1) {
+	create_all_tools_tab();
 	// Modification pour le EFFECT_STEAL_ABSOLUTE_SHIELD
 	// J'ai pas tout compris sur comment marchait le effets STEAL_* mais si on change l'effet par EFFECT_RAW_ABSOLUTE_SHIELD et que l'on ajoute le modifier multiplied by targets on aura le même résultat (et l'IA devrait marcher)
 	// cf https://leekwars.com/forum/category-3/topic-9714
 	ALL_INGAME_TOOLS[WEAPON_J_LASER][TOOL_ATTACK_EFFECTS][1][TOOL_MODIFIER_MULTIPLIED_BY_TARGETS] = true;
 	ALL_INGAME_TOOLS[WEAPON_J_LASER][TOOL_ATTACK_EFFECTS][1][TOOL_EFFECT_TYPE] = EFFECT_RAW_ABSOLUTE_SHIELD;
 
-
-
 	// Modification pour les STEROID qui ne fonctionne pas comme dans la description
 	// cf https://leekwars.com/forum/category-3/topic-9790
 	ALL_INGAME_TOOLS[CHIP_STEROID][TOOL_ATTACK_EFFECTS][2] = ALL_INGAME_TOOLS[CHIP_STEROID][TOOL_ATTACK_EFFECTS][1];
 	ALL_INGAME_TOOLS[CHIP_STEROID][TOOL_ATTACK_EFFECTS][2][TOOL_NUMBER_TURN_EFFECT_LAST] = 0;
-
 }
 
-function create_all_tools_tab()
-{
-	for ( var id_item = 0 ; id_item < NUMBER_OF_INGAME_ITEMS ; id_item++ )
-	{
-		if ( isChip( id_item ) == true ) // je suis habitué à voir les true/false, c'est juste plus lisible pour moi
-		{
+function create_all_tools_tab() {
+	for (var id_item = 0; id_item < NUMBER_OF_INGAME_ITEMS; id_item++ ) {
+		if (isChip(id_item)) {
 			ALL_INGAME_TOOLS[id_item] = [] ;
-			get_chip_stats( ALL_INGAME_TOOLS[id_item] ,  id_item ) ;
-		}
-		else if ( isWeapon( id_item ) == true )
-		{
+			get_chip_stats(ALL_INGAME_TOOLS[id_item], id_item);
+		} else if (isWeapon(id_item)) {
 			ALL_INGAME_TOOLS[id_item] = [] ;
-			get_weapon_stats( ALL_INGAME_TOOLS[id_item] ,  id_item ) ;
+			get_weapon_stats(ALL_INGAME_TOOLS[id_item],  id_item);
 		}
 	}
 }
 
-function get_weapon_stats( @weapon_tab , id_arme )
-{
-	weapon_tab[TOOL_NAME] = getWeaponName( id_arme ) ;
-	weapon_tab[TOOL_IS_WEAPON] = true ;
-	weapon_tab[TOOL_ATTACK_EFFECTS] = [] ;
-	all_stats_effects( weapon_tab[TOOL_ATTACK_EFFECTS] ,  getWeaponEffects( id_arme ) ) ;
-	weapon_tab[TOOL_MIN_RANGE] = getWeaponMinRange( id_arme ) ;
-	weapon_tab[TOOL_MAX_RANGE] = getWeaponMaxRange( id_arme ) ;
-	weapon_tab[TOOL_PT_COST] = getWeaponCost( id_arme ) ;
-	weapon_tab[TOOL_NEED_LINE_OF_SIGHT] = weaponNeedLos( id_arme ) ;
-	weapon_tab[TOOL_IS_INLINE] = isInlineWeapon( id_arme ) ;
-	weapon_tab[TOOL_AOE_TYPE] = getWeaponArea( id_arme ) ;
-	weapon_tab[TOOL_COOLDOWN_TIME] = 0 ;
+function get_weapon_stats(@weapon_tab, id_arme) {
+	weapon_tab[TOOL_NAME] = getWeaponName(id_arme);
+	weapon_tab[TOOL_IS_WEAPON] = true;
+	weapon_tab[TOOL_ATTACK_EFFECTS] = [];
+	all_stats_effects (weapon_tab[TOOL_ATTACK_EFFECTS], getWeaponEffects(id_arme));
+	weapon_tab[TOOL_MIN_RANGE] = getWeaponMinRange(id_arme);
+	weapon_tab[TOOL_MAX_RANGE] = getWeaponMaxRange(id_arme);
+	weapon_tab[TOOL_PT_COST] = getWeaponCost(id_arme);
+	weapon_tab[TOOL_NEED_LINE_OF_SIGHT] = weaponNeedLos(id_arme);
+	weapon_tab[TOOL_IS_INLINE] = isInlineWeapon(id_arme);
+	weapon_tab[TOOL_AOE_TYPE] = getWeaponArea(id_arme) ;
+	weapon_tab[TOOL_COOLDOWN_TIME] = 0;
 }
 
-function get_chip_stats( @chip_tab , id_puce )
-{
-	chip_tab[TOOL_NAME] = getChipName( id_puce ) ;
-	chip_tab[TOOL_IS_WEAPON] = false ;
-	chip_tab[TOOL_ATTACK_EFFECTS] = [] ;
-	all_stats_effects( chip_tab[TOOL_ATTACK_EFFECTS] ,  getChipEffects( id_puce ) ) ;
-	chip_tab[TOOL_MIN_RANGE] = getChipMinRange( id_puce ) ;
-	chip_tab[TOOL_MAX_RANGE] = getChipMaxRange( id_puce ) ;
-	chip_tab[TOOL_PT_COST] = getChipCost( id_puce ) ;
-	chip_tab[TOOL_NEED_LINE_OF_SIGHT] = chipNeedLos( id_puce ) ;
-	chip_tab[TOOL_IS_INLINE] = isInlineChip( id_puce ) ;
-	chip_tab[TOOL_AOE_TYPE] = getChipArea( id_puce ) ;
-	chip_tab[TOOL_COOLDOWN_TIME] = getChipCooldown( id_puce ) ;
+function get_chip_stats(@chip_tab, id_puce) {
+	chip_tab[TOOL_NAME] = getChipName(id_puce) ;
+	chip_tab[TOOL_IS_WEAPON] = false;
+	chip_tab[TOOL_ATTACK_EFFECTS] = [];
+	all_stats_effects(chip_tab[TOOL_ATTACK_EFFECTS], getChipEffects(id_puce));
+	chip_tab[TOOL_MIN_RANGE] = getChipMinRange(id_puce);
+	chip_tab[TOOL_MAX_RANGE] = getChipMaxRange(id_puce);
+	chip_tab[TOOL_PT_COST] = getChipCost(id_puce);
+	chip_tab[TOOL_NEED_LINE_OF_SIGHT] = chipNeedLos(id_puce);
+	chip_tab[TOOL_IS_INLINE] = isInlineChip(id_puce);
+	chip_tab[TOOL_AOE_TYPE] = getChipArea(id_puce);
+	chip_tab[TOOL_COOLDOWN_TIME] = getChipCooldown(id_puce);
 }
 
-function all_stats_effects( @stat , @effects )
-{
+function all_stats_effects(@stat, @effects) {
 	var nb_effects = 0 ;
-	for ( var effect in effects )
-	{
-		stat[nb_effects] = [] ;
-		stats_effects( stat[nb_effects] , effect ) ;
-		nb_effects++ ;
+	for (var effect in effects) {
+		stat[nb_effects] = [];
+		stats_effects(stat[nb_effects], effect);
+		nb_effects++;
 	}
 }
 
-function stats_effects( @tab_effect , @effect )
-{
-	tab_effect[TOOL_MIN_POWER] = effect[1] ;
-	tab_effect[TOOL_AVERAGE_POWER] = (effect[1]+effect[2])/2 ;
-	tab_effect[TOOL_MAX_POWER] = effect[2] ;
-	tab_effect[TOOL_EFFECT_TYPE] = effect[0] ;
-	tab_effect[TOOL_NUMBER_TURN_EFFECT_LAST] = effect[3] ;
+function stats_effects(@tab_effect, @effect) {
+	tab_effect[TOOL_MIN_POWER] = effect[1];
+	tab_effect[TOOL_AVERAGE_POWER] = (effect[1]+effect[2])/2;
+	tab_effect[TOOL_MAX_POWER] = effect[2];
+	tab_effect[TOOL_EFFECT_TYPE] = effect[0];
+	tab_effect[TOOL_NUMBER_TURN_EFFECT_LAST] = effect[3];
 	// effect[4/5] & truc renvoi un nombre donc pour avoir un true/false j'ai ajouté un && true
-	tab_effect[TOOL_MODIFIER_STACKABLE] = (effect[5] & EFFECT_MODIFIER_STACKABLE) && true ;
-	tab_effect[TOOL_MODIFIER_MULTIPLIED_BY_TARGETS] = (effect[5] & EFFECT_MODIFIER_MULTIPLIED_BY_TARGETS) && true ;
-	tab_effect[TOOL_MODIFIER_ON_CASTER] = (effect[5] & EFFECT_MODIFIER_ON_CASTER) && true ;
-	tab_effect[TOOL_TARGET_ALLIES] = (effect[4] & EFFECT_TARGET_ALLIES) && true ;
-	tab_effect[TOOL_TARGET_ENEMIES] = (effect[4] & EFFECT_TARGET_ENEMIES) && true ;
-	tab_effect[TOOL_TARGET_SUMMONS] = (effect[4] & EFFECT_TARGET_SUMMONS) && true ;
-	tab_effect[TOOL_TARGET_NON_SUMMONS] = (effect[4] & EFFECT_TARGET_NON_SUMMONS) && true ;
-	tab_effect[TOOL_TARGET_CASTER] = (effect[4] & EFFECT_TARGET_CASTER) && true ;
+	tab_effect[TOOL_MODIFIER_STACKABLE] = (effect[5] & EFFECT_MODIFIER_STACKABLE) && true;
+	tab_effect[TOOL_MODIFIER_MULTIPLIED_BY_TARGETS] = (effect[5] & EFFECT_MODIFIER_MULTIPLIED_BY_TARGETS) && true;
+	tab_effect[TOOL_MODIFIER_ON_CASTER] = (effect[5] & EFFECT_MODIFIER_ON_CASTER) && true;
+	tab_effect[TOOL_TARGET_ALLIES] = (effect[4] & EFFECT_TARGET_ALLIES) && true;
+	tab_effect[TOOL_TARGET_ENEMIES] = (effect[4] & EFFECT_TARGET_ENEMIES) && true;
+	tab_effect[TOOL_TARGET_SUMMONS] = (effect[4] & EFFECT_TARGET_SUMMONS) && true;
+	tab_effect[TOOL_TARGET_NON_SUMMONS] = (effect[4] & EFFECT_TARGET_NON_SUMMONS) && true;
+	tab_effect[TOOL_TARGET_CASTER] = (effect[4] & EFFECT_TARGET_CASTER) && true;
 }

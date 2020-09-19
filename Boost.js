@@ -84,11 +84,11 @@ function Booster(tool, allies, @cellsAccessible) {
 				if(!haveEffect(allie,tool)) {
 					cellAllie = getCell(allie);
 					cell_deplace = getCellToUseToolsOnCell(tool, cellAllie, cellsAccessible);
-					if (cell_deplace != -2) { //la cellule doit être atteignable
+					if (cell_deplace != NO_CELL) { //la cellule doit être atteignable
 
 						var oldPosition = INFO_LEEKS[ME][CELL];
 						INFO_LEEKS[ME][CELL] = cell_deplace;
-						var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true);
+						var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true, null);
 						checkKill(aTargetEffect);
 						valeur = getValueOfTargetEffect(aTargetEffect);
 						INFO_LEEKS[ME][CELL] = oldPosition;
@@ -139,10 +139,10 @@ function boostTypeAOE(toutPoireau, tool, @cellsAccessible)
 						if (!deja_fait[cell]) {
 							deja_fait[cell] = true;
 							cell_deplace = getCellToUseToolsOnCell(tool, cell, cellsAccessible);
-							if (cell_deplace != -2) {
+							if (cell_deplace != NO_CELL) {
 								var oldPosition = INFO_LEEKS[ME][CELL];
 								INFO_LEEKS[ME][CELL] = cell_deplace;
-								var aTargetEffect = getTargetEffect(ME, tool, cell, true);
+								var aTargetEffect = getTargetEffect(ME, tool, cell, true, null);
 								checkKill(aTargetEffect);
 								var valeur = getValueOfTargetEffect(aTargetEffect);
 								INFO_LEEKS[ME][CELL] = oldPosition;
@@ -187,7 +187,7 @@ function taperDansLeVide(tool) {
 
 	if(!isEmpty(casesValide)) {
 		var cellVide; for (var key : var cell in casesValide) {cellVide = cell; break;} // c'est moche mais il y a pas de fonction arrayValues :(
-		var aTargetEffect = getTargetEffect(ME, tool, cellVide, true);
+		var aTargetEffect = getTargetEffect(ME, tool, cellVide, true, null);
 		var valeur = getValueOfTargetEffect(aTargetEffect);
 		if(valeur > 0) {
 			action[CELL_DEPLACE] = -1;

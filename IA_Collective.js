@@ -51,6 +51,11 @@ while (continu) { // Pour l'instant on ne fait qu'une action
 	var toutAllies = getAliveAllies();
 	var tp = getTP();
 
+	if(TITAN) {
+		toutEnnemis =  getAliveEnemies() + getAliveAllies();
+		toutAllies = toutEnnemis;
+	}
+
 	getAttackAction(actions, cellsAccessible, toutEnnemis, tp, AttackTools);
 	getHealAction(actions, cellsAccessible, toutAllies, toutEnnemis, tp, HealTools);
 	getResistanceAction(actions, cellsAccessible, toutAllies, tp, ShieldTools);
@@ -59,7 +64,7 @@ while (continu) { // Pour l'instant on ne fait qu'une action
 	getTacticAction(actions, cellsAccessible, toutAllies, toutEnnemis, TacticsTools);
 
 	var combo = getBestCombo(actions, getTP());
-	//debugP(combo);
+	displayComboName(combo);
 	if(combo != []) {
 		var action = getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONANCEMENT_START]](combo); // ORDONNANCEMENT_LIBERATION_FIRST -> ORDONNANCEMENT_SCIENCE -> ORDONNANCEMENT_DEFAULT -> ORDONNANCEMENT_SUMMON_LAST
 		for(var i = 1; i <= action[4]; i++){
@@ -67,7 +72,7 @@ while (continu) { // Pour l'instant on ne fait qu'une action
 		}
 		var isUseSucess = doAction(action);
 		if(!isUseSucess) {
-			debugEP('Action non effectué : ' + action + '\n Attention à la boucle infinie');
+			debugEP('Action non effectué : ' + ALL_INGAME_TOOLS[action[CHIP_WEAPON]][TOOL_NAME]);
 			ERROR_TOOLS[action[CHIP_WEAPON]] = true;
 		}
 	} else {

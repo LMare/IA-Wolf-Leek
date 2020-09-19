@@ -7,14 +7,18 @@ function getResistanceAction(@actions, @cellsAccessible, Allies, TPmax, @shield_
 	var nb_action = count(actions);
 	for(var tool in shield_tools) {
 		if(ERROR_TOOLS[tool]) continue;
-		if ( can_use_tool( tool , TPmax ) == true ) {
+		if(can_use_tool(tool, TPmax)) {
+			var area = ALL_INGAME_TOOLS[tool][TOOL_AOE_TYPE];
 			var tir;
-			if(tool == WEAPON_J_LASER) {
+			if(area == AREA_POINT) {
+				tir = proteger(tool, Allies, cellsAccessible);
+			} else if(area == AREA_LASER_LINE) {
 				var cellToCheck = getCellsToCheckForLaser(cellsAccessible, Allies + getAliveEnemies());
 				tir = shieldTypeLigne(tool, cellToCheck, cellsAccessible);
 			} else {
-				tir = proteger(tool, Allies, cellsAccessible);
+				tir = shieldTypeAOE(Allies, tool, cellsAccessible);
 			}
+			
 
 			if ((tir != [] || tir != null) && tir[VALEUR] > 1) {
 				tir[CHIP_WEAPON] = tool;
@@ -62,10 +66,10 @@ function shieldTypeLigne(tool, @cellToCheck, @cellsAccessible) {
 			];
 			var oldPosition = INFO_LEEKS[ME][CELL];
 			INFO_LEEKS[ME][CELL] = cell[from]; // on simule le déplacement
-			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true);
+			var aTargetEffect = getTargetEffect(ME, tool, cellVise, true, null);
 			var valeur = getValueOfTargetEffect(aTargetEffect);
 			INFO_LEEKS[ME][CELL] = oldPosition;
-
+			
 			if(MINIMUM_TO_USE[tool]===null || MINIMUM_TO_USE[tool]<= valeur) {
 				if ((valeur > valeurMax || valeur == valeurMax && cellsAccessible[cell[from]] < distanceBestAction)) {
 					bestAction[CELL_DEPLACE] = cell[from];
@@ -100,10 +104,10 @@ function proteger(tool, allies, @cellsAccessible) {// pour les puces de shield s
 					if(!haveEffect(allie,tool)) {
 						cellAllie = getCell(allie);
 						cell_deplace = getCellToUseToolsOnCell(tool, cellAllie, cellsAccessible);
-						if (cell_deplace != -2) { //la cellule doit être atteignable
+						if (cell_deplace != NO_CELL) { //la cellule doit être atteignable
 							var oldPosition = INFO_LEEKS[ME][CELL];
 							INFO_LEEKS[ME][CELL] = cell_deplace; // on simule le déplacement
-							var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true);
+							var aTargetEffect = getTargetEffect(ME, tool, cellAllie, true, null);
 							valeur = getValueOfTargetEffect(aTargetEffect);
 							INFO_LEEKS[ME][CELL] = oldPosition;
 							if (valeur > bestValeur || valeur == bestValeur && cellsAccessible[cell_deplace] < distanceBestAction) {
@@ -126,4 +130,58 @@ function proteger(tool, allies, @cellsAccessible) {// pour les puces de shield s
 	}
 	debugP(ALL_INGAME_TOOLS[tool][TOOL_NAME] + " : " + bestAction + " => " + ((getOperations() - ope) / OPERATIONS_LIMIT * 100) + "%");
 	return @bestAction;
+}
+
+
+function shieldTypeAOE(toutPoireau, tool, @cellsAccessible) {
+	var oper = getOperations();
+	var bestAction = [];
+	var distanceBestAction = 0;
+
+	var cell_deplace;
+	var valeurMax = 0;
+	var maxRange = ALL_INGAME_TOOLS[tool][TOOL_MAX_RANGE];
+	var deja_fait = [];
+	for (var poireau in toutPoireau) {
+		var distance = getCellDistance(getCell(), getCell(poireau));
+		if (distance <= maxRange + getMP() + getAreaDistance(tool)) {
+			var zone = getEffectiveArea(tool, getCell(poireau));
+			if (zone != null) {
+				for (var cell in zone) {
+					if (!deja_fait[cell]) {
+						deja_fait[cell] = true;
+						cell_deplace = getCellToUseToolsOnCell(tool, cell, cellsAccessible);
+						if (cell_deplace != NO_CELL) {
+							var oldPosition = INFO_LEEKS[ME][CELL];
+							INFO_LEEKS[ME][CELL] = cell_deplace;
+							var aTargetEffect = getTargetEffect(ME, tool, cell, true, null);
+							var valeur = getValueOfTargetEffect(aTargetEffect);
+							INFO_LEEKS[ME][CELL] = cell_deplace;
+							if (valeur > valeurMax || valeur == valeurMax && cellsAccessible[cell_deplace] < distanceBestAction) {
+								bestAction[CELL_DEPLACE] = cell_deplace;
+								bestAction[CELL_VISE] = cell;
+								bestAction[VALEUR] = valeur;
+								valeurMax = valeur;
+								distanceBestAction = cellsAccessible[cell_deplace];
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	debugP(ALL_INGAME_TOOLS[tool][TOOL_NAME] + " : " + bestAction + " => " + ((getOperations() - oper) / OPERATIONS_LIMIT * 100) + "%");
+	return @bestAction;
+}
+
+
+
+function getAreaDistance(tool) {
+	var area = ALL_INGAME_TOOLS[tool][TOOL_AOE_TYPE];
+	if(inArray([AREA_POINT, AREA_LASER_LINE], area)) return 0;
+	if(inArray([AREA_CIRCLE_1, AREA_PLUS_1], area)) return 1;
+	if(inArray([AREA_CIRCLE_2, AREA_PLUS_2, AREA_X_1], area)) return 2;
+	if(inArray([AREA_CIRCLE_3, AREA_PLUS_3], area)) return 3;
+	if(area == AREA_X_2) return 4;
+	if(area == AREA_X_3) return 6;
 }

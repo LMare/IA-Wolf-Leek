@@ -12,6 +12,7 @@ global ORDONNANCEMENT_DEBUFF = 5;
 global ORDONNANCEMENT_LIBERATION_FIRST = 6;
 global ORDONNANCEMENT_NEAREST_CELL_FIRST = 7;
 global ORDONNANCEMENT_VULNERABILITE_FIRST = 8;
+global ORDONNANCEMENT_TELEPORT_FIRST = 9;
 
 global ORDONNANCEMENT_DEFAULT = ORDONNANCEMENT_NEAREST_CELL_FIRST; // ORDONNANCEMENT_BVF ou bien ORDONNANCEMENT_NEAREST_CELL_FIRST
 
@@ -20,7 +21,8 @@ global ORDONNANCEMENT_DEFAULT = ORDONNANCEMENT_NEAREST_CELL_FIRST; // ORDONNANCE
  * L'ordonnanceur dans la partie 'valeur' est appelé après celui qui est dans la partie 'key'
  */
 global ORDONNANCEMENT_PERSONNALISE = [
-	ORDONANCEMENT_START : ORDONNANCEMENT_LIBERATION_FIRST,
+	ORDONANCEMENT_START : ORDONNANCEMENT_TELEPORT_FIRST,
+	ORDONNANCEMENT_TELEPORT_FIRST : ORDONNANCEMENT_LIBERATION_FIRST,
 	ORDONNANCEMENT_LIBERATION_FIRST : ORDONNANCEMENT_SCIENCE,
 	ORDONNANCEMENT_SCIENCE : ORDONNANCEMENT_VULNERABILITE_FIRST,
 	ORDONNANCEMENT_VULNERABILITE_FIRST : ORDONNANCEMENT_SUMMON_LAST,
@@ -105,9 +107,9 @@ getActionFromCombo[ORDONNANCEMENT_SCIENCE] = function(@combo) {
 	}
 	//TODO: Rajouter des choses si besoin
 	if (ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SCIENCE]) {
-		return getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SCIENCE]](combo);
+		return @getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SCIENCE]](combo);
 	} else {
-		return getActionFromCombo[ORDONNANCEMENT_SUMMON_LAST](combo);
+		return @getActionFromCombo[ORDONNANCEMENT_SUMMON_LAST](combo);
 	}
 };
 
@@ -119,9 +121,9 @@ getActionFromCombo[ORDONNANCEMENT_VULNERABILITE_FIRST] = function(@combo) {
 	}
 
 	if (ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_VULNERABILITE_FIRST]) {
-		return getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_VULNERABILITE_FIRST]](combo);
+		return @getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_VULNERABILITE_FIRST]](combo);
 	} else {
-		return getActionFromCombo[ORDONNANCEMENT_DEFAULT](combo);
+		return @getActionFromCombo[ORDONNANCEMENT_DEFAULT](combo);
 	}
 };
 
@@ -202,16 +204,27 @@ getActionFromCombo[ORDONNANCEMENT_SUMMON_LAST] = function(@combo) {
 	}
 	if(count(nonSummonAction)) {
 		if (ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SUMMON_LAST]) {
-			return @getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SUMMON_LAST]](combo);
+			return @getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_SUMMON_LAST]](nonSummonAction);
 		} else {
-			return @getActionFromCombo[ORDONNANCEMENT_DEFAULT](combo);
+			return @getActionFromCombo[ORDONNANCEMENT_DEFAULT](nonSummonAction);
 		}
 	} else {
 		return @summonAction[0];
 	}
 };
 
+getActionFromCombo[ORDONNANCEMENT_TELEPORT_FIRST] = function(@combo) {
+	var action = getActionInComboByTool(combo, CHIP_TELEPORTATION);
+	if (action != null) {
+		return @action;
+	}
 
+	if (ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_TELEPORT_FIRST]) {
+		return @getActionFromCombo[ORDONNANCEMENT_PERSONNALISE[ORDONNANCEMENT_TELEPORT_FIRST]](combo);
+	} else {
+		return @getActionFromCombo[ORDONNANCEMENT_SCIENCE](combo);
+	}
+};
 
 function getActionInComboByTool(@combo, tool) {
 	for (var i = 0; i < count(combo); i++) {
@@ -297,7 +310,7 @@ function doAction(attack) {
 
 		}
 		if (nbPeopleApres != nbPeopleAvant) { // On a tuer quelqu'un
-			updateInfoLeeks(); // on met à jour les infos car tout les effet qu'il a lancé sont supprimé
+			updateInfoLeeks(); // on met à jour les infos car tout les effets qu'il a lancé sont supprimé
 		}
 
 		if (!attack[NB_TIR] && attack[CALLBACK] !== null) {
@@ -375,6 +388,5 @@ function knapsack(@p, @w, W) {
 		}
 		i--;
 	}
-
 	return x;
 }
